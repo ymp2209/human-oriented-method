@@ -41,27 +41,17 @@ def init_session_state(images):
         )
 
 
-def save_response(session_id, image_path, random_score, organized_score):
-    """Append one row of response to CSV."""
-    # Ensure directory exists (for relative paths)
-    os.makedirs(os.path.dirname(RESULTS_CSV) or ".", exist_ok=True)
-    file_exists = os.path.isfile(RESULTS_CSV)
+GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzpk9A0413lhPHUp0zM1mV4SjOoaqjWQ8f3kEmo3wJwxOnhMSFJre7852AXltLMfzhD/exec"
 
-    with open(RESULTS_CSV, mode="a", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        if not file_exists:
-            writer.writerow(
-                ["timestamp_utc", "session_id", "image_name", "random_score", "organized_score"]
-            )
-        writer.writerow(
-            [
-                datetime.utcnow().isoformat(),
-                session_id,
-                os.path.basename(image_path),
-                random_score,
-                organized_score,
-            ]
-        )
+def save_response(session_id, image_path, random_score, organized_score):
+    payload = {
+        "session_id": session_id,
+        "image_name": os.path.basename(image_path),
+        "random_score": random_score,
+        "organized_score": organized_score
+    }
+    requests.post(GOOGLE_SHEET_URL, json=payload)
+
 
 
 def main():

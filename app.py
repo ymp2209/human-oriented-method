@@ -1,3 +1,5 @@
+import requests
+
 import os
 import csv
 import random

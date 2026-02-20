@@ -1,4 +1,4 @@
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+
 import os
 import csv
 import random
@@ -6,7 +6,7 @@ from datetime import datetime
 
 import streamlit as st
 from PIL import Image  # pip install pillow
-
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 IMAGE_DIR = "images"
 RESULTS_CSV = "human_ratings.csv"
 EXPECTED_IMAGES = 50

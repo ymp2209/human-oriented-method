@@ -102,7 +102,7 @@ def save_response(
 def download_csv_widget():
     st.sidebar.header("Admin")
 
-    pw = st.sidebar.text_input("Admin password", type="password")
+    pw = st.sidebar.text_input("Admin password", type="password", key="admin_pw")
 
     if not ADMIN_PASSWORD:
         st.sidebar.error("ADMIN_PASSWORD is not set in Streamlit Secrets/Env.")
@@ -151,11 +151,9 @@ def main():
 
     init_session_state(images)
 
-    idx = st.session_state.idx
-    if idx >= len(st.session_state.image_list):
-        st.success("You have finished rating all images. Thank you for your participation!")
-        download_csv_widget()  # allow download at the end
-        st.stop()
+   if idx >= len(st.session_state.image_list):
+    st.success("You have finished rating all images. Thank you for your participation!")
+    st.stop()
 
     current_image = st.session_state.image_list[idx]
     image_name = os.path.basename(current_image)

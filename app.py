@@ -2,7 +2,6 @@ import os
 import csv
 import random
 from datetime import datetime
-from collections import Counter
 
 import streamlit as st
 from PIL import Image  # pip install pillow
@@ -36,12 +35,9 @@ def list_images():
         except Exception:
             invalid.append(p)
 
-    # Helpful UI info
-    if invalid:
-        st.info(f"Ignored {len(invalid)} invalid/corrupt images (not counted).")
-
-        # Uncomment to show the filenames of invalid images:
-        # st.write("Invalid images:", [os.path.relpath(x, IMAGE_DIR) for x in invalid])
+    # Optional UI info (comment out if you want a super-clean UI)
+    # if invalid:
+    #     st.info(f"Ignored {len(invalid)} invalid/corrupt images (not counted).")
 
     valid = sorted(valid)
     random.shuffle(valid)
@@ -102,18 +98,32 @@ def save_response(
         )
 
 
+def download_csv_widget():
+    """Show a download button for the results CSV (Streamlit Cloud friendly)."""
+    if os.path.exists(RESULTS_CSV):
+        with open(RESULTS_CSV, "rb") as f:
+            st.download_button(
+                label="📥 Download responses CSV",
+                data=f,
+                file_name="human_ratings.csv",
+                mime="text/csv",
+            )
+    else:
+        st.info("No CSV yet. Submit at least one response to create the file.")
+
+
 def main():
     st.title("HUMAN ORIENTED METHOD")
     st.write("This study is part of a Master's project.")
+
+    # Download button (appears once at least 1 response is submitted)
+    download_csv_widget()
+    st.divider()
 
     images = list_images()
     if not images:
         st.error(f"No valid images found in folder: {IMAGE_DIR}")
         st.stop()
-
-    # Debug info (helps explain why count differs)
-    #exts = Counter([os.path.splitext(p)[1].lower() for p in images])
-    #st.caption(f"Loaded {len(images)} valid images from '{IMAGE_DIR}'. Extensions: {dict(exts)}")
 
     # Enforce target count without crashing the app
     if len(images) != EXPECTED_IMAGES:
@@ -122,16 +132,14 @@ def main():
             f"Please ensure you have exactly {EXPECTED_IMAGES} VALID images "
             f"(supported: .jpg, .jpeg, .png, .webp)."
         )
-        # If your professor requires EXACTLY 50 images, stop here:
         st.stop()
-
-        # If you prefer to continue anyway, comment out st.stop() above.
 
     init_session_state(images)
 
     idx = st.session_state.idx
     if idx >= len(st.session_state.image_list):
         st.success("You have finished rating all images. Thank you for your participation!")
+        download_csv_widget()  # allow download at the end
         st.stop()
 
     current_image = st.session_state.image_list[idx]

@@ -1,4 +1,3 @@
-
 import os
 import csv
 import random
@@ -6,10 +5,13 @@ from datetime import datetime
 
 import streamlit as st
 from PIL import Image  # pip install pillow
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+
 IMAGE_DIR = "images"
 RESULTS_CSV = "human_ratings.csv"
 EXPECTED_IMAGES = 50
+
+# Admin password (set in Streamlit Cloud → Settings → Secrets)
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
 
 def list_images():
@@ -100,16 +102,20 @@ def save_response(
 
 
 def download_csv_widget():
+    """
+    Admin-only CSV download (Streamlit Cloud friendly).
+    Shows in the sidebar only. Uses keys to avoid DuplicateElementId errors.
+    """
     st.sidebar.header("Admin")
 
     pw = st.sidebar.text_input("Admin password", type="password", key="admin_pw")
 
     if not ADMIN_PASSWORD:
-        st.sidebar.error("ADMIN_PASSWORD is not set in Streamlit Secrets/Env.")
+        st.sidebar.error("ADMIN_PASSWORD is not set in Streamlit Secrets.")
         return
 
     if pw != ADMIN_PASSWORD:
-        st.sidebar.info("Enter password to access downloads.")
+        st.sidebar.info("Enter password to access CSV download.")
         return
 
     st.sidebar.success("Admin access granted ✅")
@@ -124,16 +130,15 @@ def download_csv_widget():
                 key="admin_download_csv",
             )
     else:
-        st.sidebar.warning("CSV not created yet. Submit at least one rating first.")
+        st.sidebar.warning("No CSV yet. Submit at least one response to create it.")
 
 
 def main():
     st.title("HUMAN ORIENTED METHOD")
     st.write("This study is part of a Master's project.")
 
-    # Download button (appears once at least 1 response is submitted)
+    # Show admin-only download in sidebar (call ONCE to avoid duplicate widget IDs)
     download_csv_widget()
-    st.divider()
 
     images = list_images()
     if not images:
@@ -151,9 +156,10 @@ def main():
 
     init_session_state(images)
 
-   if idx >= len(st.session_state.image_list):
-    st.success("You have finished rating all images. Thank you for your participation!")
-    st.stop()
+    idx = st.session_state.idx
+    if idx >= len(st.session_state.image_list):
+        st.success("You have finished rating all images. Thank you for your participation!")
+        st.stop()
 
     current_image = st.session_state.image_list[idx]
     image_name = os.path.basename(current_image)

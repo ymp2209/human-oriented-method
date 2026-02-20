@@ -1,3 +1,4 @@
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 import os
 import csv
 import random
@@ -99,17 +100,31 @@ def save_response(
 
 
 def download_csv_widget():
-    """Show a download button for the results CSV (Streamlit Cloud friendly)."""
+    st.sidebar.header("Admin")
+
+    pw = st.sidebar.text_input("Admin password", type="password")
+
+    if not ADMIN_PASSWORD:
+        st.sidebar.error("ADMIN_PASSWORD is not set in Streamlit Secrets/Env.")
+        return
+
+    if pw != ADMIN_PASSWORD:
+        st.sidebar.info("Enter password to access downloads.")
+        return
+
+    st.sidebar.success("Admin access granted ✅")
+
     if os.path.exists(RESULTS_CSV):
         with open(RESULTS_CSV, "rb") as f:
-            st.download_button(
+            st.sidebar.download_button(
                 label="📥 Download responses CSV",
                 data=f,
                 file_name="human_ratings.csv",
                 mime="text/csv",
+                key="admin_download_csv",
             )
     else:
-        st.info("No CSV yet. Submit at least one response to create the file.")
+        st.sidebar.warning("CSV not created yet. Submit at least one rating first.")
 
 
 def main():

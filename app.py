@@ -10,6 +10,10 @@ IMAGE_DIR = "images"
 RESULTS_CSV = "human_ratings.csv"
 EXPECTED_IMAGES = 50
 
+# Set this in Streamlit Cloud -> App -> Settings -> Secrets:
+# ADMIN_PASSWORD="yourStrongPasswordHere"
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+
 
 def list_images():
     """
@@ -35,7 +39,7 @@ def list_images():
         except Exception:
             invalid.append(p)
 
-    # Optional UI info (comment out if you want a super-clean UI)
+    # Optional UI info
     if invalid:
         st.info(f"Ignored {len(invalid)} invalid/corrupt images (not counted).")
 
@@ -98,9 +102,43 @@ def save_response(
         )
 
 
+def download_csv_widget():
+    """Admin-only CSV download (appears in sidebar)."""
+    st.sidebar.header("Admin")
+
+    pw = st.sidebar.text_input("Admin password", type="password", key="admin_pw")
+
+    if not ADMIN_PASSWORD:
+        st.sidebar.error("ADMIN_PASSWORD is not set in Streamlit Secrets.")
+        return
+
+    if pw != ADMIN_PASSWORD:
+        st.sidebar.info("Enter password to access CSV download.")
+        return
+
+    st.sidebar.success("Admin access granted ✅")
+
+    if os.path.exists(RESULTS_CSV):
+        with open(RESULTS_CSV, "rb") as f:
+            st.sidebar.download_button(
+                label="📥 Download responses CSV",
+                data=f,
+                file_name="human_ratings.csv",
+                mime="text/csv",
+                key="admin_download_csv",
+            )
+    else:
+        st.sidebar.warning(
+            "CSV not found yet (no submissions) or it was lost after a restart."
+        )
+
+
 def main():
     st.title("HUMAN ORIENTED METHOD")
     st.write("This study is part of a Master's project.")
+
+    # Show admin-only download in the sidebar
+    download_csv_widget()
 
     images = list_images()
     if not images:
@@ -158,12 +196,12 @@ def main():
         choices[k] = st.radio(
             questions[k],
             options=list(likert_options.keys()),
-            index=None,  # ✅ nothing selected by default
+            index=None,  # nothing selected by default
             key=f"{k}_{idx}",
         )
 
     if st.button("Submit and show next image"):
-        # ✅ Force participant to answer all questions
+        # Force participant to answer all questions
         if any(v is None for v in choices.values()):
             st.warning("Please answer all questions before proceeding.")
             st.stop()

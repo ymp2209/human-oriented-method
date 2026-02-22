@@ -10,9 +10,6 @@ IMAGE_DIR = "images"
 RESULTS_CSV = "human_ratings.csv"
 EXPECTED_IMAGES = 50
 
-# Admin password (set in Streamlit Cloud → Settings → Secrets)
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
-
 
 def list_images():
     """
@@ -39,8 +36,8 @@ def list_images():
             invalid.append(p)
 
     # Optional UI info (comment out if you want a super-clean UI)
-    # if invalid:
-    #     st.info(f"Ignored {len(invalid)} invalid/corrupt images (not counted).")
+    if invalid:
+        st.info(f"Ignored {len(invalid)} invalid/corrupt images (not counted).")
 
     valid = sorted(valid)
     random.shuffle(valid)
@@ -101,51 +98,15 @@ def save_response(
         )
 
 
-def download_csv_widget():
-    """
-    Admin-only CSV download (Streamlit Cloud friendly).
-    Shows in the sidebar only. Uses keys to avoid DuplicateElementId errors.
-    """
-    st.sidebar.header("Admin")
-
-    pw = st.sidebar.text_input("Admin password", type="password", key="admin_pw")
-
-    if not ADMIN_PASSWORD:
-        st.sidebar.error("ADMIN_PASSWORD is not set in Streamlit Secrets.")
-        return
-
-    if pw != ADMIN_PASSWORD:
-        st.sidebar.info("Enter password to access CSV download.")
-        return
-
-    st.sidebar.success("Admin access granted ✅")
-
-    if os.path.exists(RESULTS_CSV):
-        with open(RESULTS_CSV, "rb") as f:
-            st.sidebar.download_button(
-                label="📥 Download responses CSV",
-                data=f,
-                file_name="human_ratings.csv",
-                mime="text/csv",
-                key="admin_download_csv",
-            )
-    else:
-        st.sidebar.warning("No CSV yet. Submit at least one response to create it.")
-
-
 def main():
     st.title("HUMAN ORIENTED METHOD")
     st.write("This study is part of a Master's project.")
-
-    # Show admin-only download in sidebar (call ONCE to avoid duplicate widget IDs)
-    download_csv_widget()
 
     images = list_images()
     if not images:
         st.error(f"No valid images found in folder: {IMAGE_DIR}")
         st.stop()
 
-    # Enforce target count without crashing the app
     if len(images) != EXPECTED_IMAGES:
         st.warning(
             f"Expected {EXPECTED_IMAGES} images, but found {len(images)} valid images. "
@@ -185,22 +146,28 @@ def main():
         "fake": "I think this image is fake.",
     }
 
-    # Random order of the 5 questions for each image (stable per session+image)
+    # Random order of questions per image (stable per session+image)
     question_keys = list(questions.keys())
     seed_str = f"{st.session_state.session_id}_{image_name}"
     rnd = random.Random(seed_str)
     rnd.shuffle(question_keys)
 
+    # Collect responses (no default selection)
     choices = {}
     for k in question_keys:
         choices[k] = st.radio(
             questions[k],
             options=list(likert_options.keys()),
-            index=2,
+            index=None,  # ✅ nothing selected by default
             key=f"{k}_{idx}",
         )
 
     if st.button("Submit and show next image"):
+        # ✅ Force participant to answer all questions
+        if any(v is None for v in choices.values()):
+            st.warning("Please answer all questions before proceeding.")
+            st.stop()
+
         scores = {k: likert_options[choices[k]] for k in choices}
 
         save_response(
